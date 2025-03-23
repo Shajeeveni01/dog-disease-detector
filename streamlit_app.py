@@ -4,6 +4,9 @@ import numpy as np
 from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
+from datetime import datetime
+import pandas as pd
+import io
 
 # Load model
 model = tf.keras.models.load_model("dog_disease_model.keras")
@@ -45,9 +48,7 @@ uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png
 if uploaded_file:
     # Show uploaded image
     image = Image.open(uploaded_file).convert("RGB")
-    # st.image(image, caption="Uploaded Dog Image", use_column_width=True)
     st.image(image, caption="Uploaded Dog Image", use_container_width=True)
-
 
     # Preprocess
     img_resized = image.resize((224, 224))
@@ -75,5 +76,29 @@ if uploaded_file:
     superimposed_img = cv2.addWeighted(img_display.astype('uint8'), 0.6, heatmap_color, 0.4, 0)
 
     st.subheader("📍 Grad-CAM Heatmap")
-    # st.image(superimposed_img, caption="Model focus area", use_column_width=True)
     st.image(superimposed_img, caption="Model focus area", use_container_width=True)
+
+    # 🧾 CSV Report
+    report_data = {
+        "Prediction": [class_labels[top_index]],
+        "Confidence (%)": [f"{confidence:.2f}"],
+        "Timestamp": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+    }
+
+    report_df = pd.DataFrame(report_data)
+
+    st.subheader("🧾 Report Summary")
+    st.dataframe(report_df)
+
+    # Generate CSV
+    csv_buffer = io.StringIO()
+    report_df.to_csv(csv_buffer, index=False)
+    csv_data = csv_buffer.getvalue()
+
+    # Download button
+    st.download_button(
+        label="📥 Download Report as CSV",
+        data=csv_data,
+        file_name="dog_disease_report.csv",
+        mime="text/csv"
+    )
